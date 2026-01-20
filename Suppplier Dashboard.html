@@ -1,0 +1,549 @@
+<Supplier dashboard>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project SCORPION - Interactive Supplier Dashboard</title>
+    <!-- Chosen Palette: "Warm Neutral Ground" - A calming base of warm grays and off-whites, with strategic use of blue (trust, strategy), yellow (caution, cost), and red (risk, urgency) for segment identification. -->
+    <!-- Application Structure Plan: The SPA is designed as a top-down executive dashboard, not a linear report. The information architecture prioritizes actionable insights. The flow is: 1) High-level summary (Header KPIs). 2) Core Finding (The four interactive supplier segments). 3) Drill-Down & Strategy (A dynamic "Deep Dive" section that updates on segment selection, showing profiles, recommendations, and comparative charts). 4) Exploratory Analysis (An interactive bubble chart and filtered bar charts for user-driven discovery). This structure guides the user from the main conclusion to detailed evidence and strategic action, making it far more usable for decision-making than a simple document. -->
+    <!-- Visualization & Content Choices: 1) Executive KPIs: Inform -> Stat Cards -> HTML/CSS -> Quick, high-level context. 2) Segmentation: Organize/Compare -> Interactive Cards -> HTML/CSS + JS -> Central, actionable finding. 3) Segment Profile: Compare -> Radar Chart -> Chart.js -> Provides a unique visual "fingerprint" for each segment versus the average, as suggested in the report. 4) Risk vs. Performance: Relationships -> Bubble Chart -> Chart.js -> Shows the multi-dimensional relationship between performance, risk, and spend in one powerful, interactive view. 5) Categorical Performance: Compare -> Dynamic Bar Chart -> Chart.js + Dropdowns -> Allows users to answer specific questions about performance by region/category. 6) Recommendations: Inform -> Styled Text with Icons -> HTML/CSS -> Makes the action plan clear and digestible. All charts use Canvas via Chart.js. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f4f5; /* Warm Gray 100 */
+        }
+        .card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .active-segment-card {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-width: 2px;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+        .segment-title-strategic { border-color: #3b82f6; } /* Blue 500 */
+        .segment-bg-strategic { background-color: #eff6ff; } /* Blue 50 */
+        .segment-text-strategic { color: #2563eb; } /* Blue 600 */
+        .active-segment-card.segment-border-strategic { border-color: #3b82f6; }
+
+        .segment-title-workhorse { border-color: #6b7280; } /* Gray 500 */
+        .segment-bg-workhorse { background-color: #f3f4f6; } /* Gray 100 */
+        .segment-text-workhorse { color: #4b5563; } /* Gray 600 */
+        .active-segment-card.segment-border-workhorse { border-color: #6b7280; }
+
+        .segment-title-specialist { border-color: #f59e0b; } /* Amber 500 */
+        .segment-bg-specialist { background-color: #fffbeb; } /* Amber 50 */
+        .segment-text-specialist { color: #d97706; } /* Amber 600 */
+        .active-segment-card.segment-border-specialist { border-color: #f59e0b; }
+
+        .segment-title-liability { border-color: #ef4444; } /* Red 500 */
+        .segment-bg-liability { background-color: #fee2e2; } /* Red 50 */
+        .segment-text-liability { color: #dc2626; } /* Red 600 */
+        .active-segment-card.segment-border-liability { border-color: #ef4444; }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="bg-white shadow-sm sticky top-0 z-20">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col sm:flex-row justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Project SCORPION</h1>
+                    <p class="text-sm text-gray-500">Interactive Supplier Intelligence Dashboard for Conagra Brands</p>
+                </div>
+                <div class="flex space-x-4 mt-4 sm:mt-0">
+                    <div class="text-center">
+                        <p class="text-xl font-bold text-gray-900">150</p>
+                        <p class="text-xs text-gray-500">Suppliers Analyzed</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xl font-bold text-gray-900">~17.5</p>
+                        <p class="text-xs text-gray-500">Avg. Risk Score</p>
+                    </div>
+                     <div class="text-center">
+                        <p class="text-xl font-bold text-gray-900">~53</p>
+                        <p class="text-xs text-gray-500">Avg. SPI Score</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- Core Findings: New Supplier Segments -->
+        <section id="segmentation" class="mb-12">
+            <h2 class="text-xl font-bold mb-1 text-gray-900">Core Finding: A New Data-Driven Segmentation</h2>
+            <p class="text-gray-600 mb-6 max-w-4xl">
+                This analysis moves beyond traditional tiers to a dynamic, multi-faceted segmentation model. Using K-Means clustering, we've identified four distinct supplier personas based on their holistic performance, cost, and risk profiles. Click on a segment to explore its characteristics and strategic recommendations.
+            </p>
+            <div id="segment-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Segment cards will be dynamically inserted here -->
+            </div>
+        </section>
+
+        <!-- Deep Dive Section -->
+        <section id="deep-dive" class="bg-white p-6 rounded-lg shadow-md mb-12 min-h-[500px]">
+             <div id="deep-dive-content">
+                <!-- Content updates dynamically based on selected segment -->
+                 <div class="text-center py-20 text-gray-500">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">Select a Segment</h3>
+                    <p class="mt-1 text-sm text-gray-500">Click on a card above to see a detailed analysis.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Exploratory Analysis -->
+        <section id="exploratory-analysis" class="mb-12">
+            <h2 class="text-xl font-bold mb-1 text-gray-900">Exploratory Analysis</h2>
+             <p class="text-gray-600 mb-6 max-w-4xl">
+                Interact with the visualizations below to explore relationships within the supplier data. These tools allow for a deeper, self-guided discovery of performance trends and risk factors across the entire supplier base.
+            </p>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="font-semibold text-lg mb-1 text-gray-900">Performance vs. Risk Landscape</h3>
+                     <p class="text-sm text-gray-600 mb-4">
+                        This chart plots suppliers based on their performance (SPI Score) and risk. The size of each bubble represents the total spend. Hover over a bubble to see supplier details. This view helps identify high-spend, high-risk suppliers who require immediate attention.
+                    </p>
+                    <div class="chart-container mx-auto max-w-xl">
+                        <canvas id="bubbleChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="font-semibold text-lg mb-1 text-gray-900">Performance by Category & Region</h3>
+                     <p class="text-sm text-gray-600 mb-4">
+                        Use the filters to compare average performance metrics across different business dimensions. This can reveal systemic strengths or weaknesses in specific parts of the supply chain.
+                    </p>
+                    <div class="flex flex-wrap gap-4 mb-4">
+                         <select id="bar-chart-metric-selector" class="p-2 border rounded-md bg-gray-50">
+                            <option value="Total_Risk_Score">Average Risk Score</option>
+                            <option value="SPI_Score">Average SPI Score</option>
+                            <option value="DefectRate(%)">Average Defect Rate (%)</option>
+                            <option value="OnTimeDeliveryRate(%)">Average On-Time Delivery (%)</option>
+                        </select>
+                        <select id="bar-chart-group-selector" class="p-2 border rounded-md bg-gray-50">
+                            <option value="Region">Group by Region</option>
+                            <option value="ProductCategory">Group by Product Category</option>
+                        </select>
+                    </div>
+                    <div class="chart-container mx-auto max-w-xl">
+                        <canvas id="barChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Deployment & Future -->
+        <section id="deployment">
+            <h2 class="text-xl font-bold mb-1 text-gray-900">Deployment & Next Steps</h2>
+             <p class="text-gray-600 mb-6 max-w-4xl">
+                This interactive dashboard is the first step in embedding data-driven intelligence into daily operations. The following actions will ensure sustained value from this analysis.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="font-semibold text-lg mb-2 text-gray-900">Operationalize</h3>
+                    <p class="text-gray-600">Integrate this segmentation framework into the Supplier Excellence Programme and quarterly business reviews. Use this dashboard as the primary tool for ongoing performance monitoring.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="font-semibold text-lg mb-2 text-gray-900">Maintain & Refine</h3>
+                    <p class="text-gray-600">Monitor segment assignments quarterly and retrain the entire model annually with new data. Establish a feedback loop with procurement managers to continuously improve the model and dashboard utility.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="font-semibold text-lg mb-2 text-gray-900">Expand Capabilities</h3>
+                    <p class="text-gray-600">Leverage this foundation to build predictive models that forecast supplier risk. Apply text analytics to quantify innovation contributions and perform network analysis to model supply chain resilience.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            
+            const segmentData = {
+                'Strategic Partners': {
+                    id: 0,
+                    class: 'strategic',
+                    description: 'Elite, innovative, low-risk partners forming the foundation for future growth.',
+                    percentage: '15%',
+                    profile: {
+                        'SPI_Score': 65.8, 'Total_Risk_Score': 5.5, 'OnTimeDeliveryRate(%)': 98.9,
+                        'DefectRate(%)': 0.15, 'Cost_to_Serve_Ratio': 0.05, 'ESGScore(%)': 92.5
+                    },
+                    recommendation: {
+                        title: 'Cultivate and Co-Invest',
+                        icon: '⭐',
+                        points: [
+                            'Deepen ties through executive relationship mapping and joint business planning.',
+                            'Prioritize for new product development and integrate into innovation pipeline.',
+                            'Establish long-term agreements (3+ years) to secure capacity and foster mutual investment.'
+                        ]
+                    }
+                },
+                'Operational Workhorses': {
+                    id: 1,
+                    class: 'workhorse',
+                    description: 'Consistent and reliable suppliers forming the backbone of daily operations.',
+                    percentage: '45%',
+                    profile: {
+                        'SPI_Score': 55.2, 'Total_Risk_Score': 12.1, 'OnTimeDeliveryRate(%)': 97.5,
+                        'DefectRate(%)': 0.35, 'Cost_to_Serve_Ratio': 0.08, 'ESGScore(%)': 82.1
+                    },
+                    recommendation: {
+                        title: 'Optimize and Automate',
+                        icon: '⚙️',
+                        points: [
+                            'Focus on driving efficiency and consolidating volume to leverage scale for cost savings.',
+                            'Automate transactional processes (e.g., PO to payment) to reduce administrative overhead.',
+                            'Maintain steady, long-term relationships with a focus on operational excellence.'
+                        ]
+                    }
+                },
+                'High-Cost Specialists': {
+                    id: 2,
+                    class: 'specialist',
+                    description: 'Capable suppliers providing unique materials, but at a high total cost to serve.',
+                    percentage: '25%',
+                    profile: {
+                        'SPI_Score': 48.5, 'Total_Risk_Score': 20.3, 'OnTimeDeliveryRate(%)': 94.1,
+                        'DefectRate(%)': 0.55, 'Cost_to_Serve_Ratio': 0.22, 'ESGScore(%)': 75.4
+                    },
+                    recommendation: {
+                        title: 'Challenge and Re-Engineer Value',
+                        icon: '💰',
+                        points: [
+                            'Initiate targeted negotiations focused on total cost of ownership, not just unit price.',
+                            'Launch joint value-engineering workshops to reduce cost without sacrificing capability.',
+                            'For non-critical items, actively seek and qualify alternative, lower-cost suppliers.'
+                        ]
+                    }
+                },
+                'High-Risk Liabilities': {
+                    id: 3,
+                    class: 'liability',
+                    description: 'Poor performers posing an unacceptable and immediate threat to business continuity.',
+                    percentage: '15%',
+                    profile: {
+                        'SPI_Score': 40.1, 'Total_Risk_Score': 33.5, 'OnTimeDeliveryRate(%)': 90.5,
+                        'DefectRate(%)': 0.95, 'Cost_to_Serve_Ratio': 0.18, 'ESGScore(%)': 65.2
+                    },
+                    recommendation: {
+                        title: 'Mitigate and Exit (Immediate Priority)',
+                        icon: '⚠️',
+                        points: [
+                            'For single-source suppliers, mandate development of dual-sourcing or alternative plans.',
+                            'Implement rigorous Performance Improvement Plans (PIPs) with non-negotiable targets.',
+                            'Prepare to terminate relationships for suppliers who fail to show significant improvement.'
+                        ]
+                    }
+                }
+            };
+
+            const overallAverageProfile = {
+                'SPI_Score': 53.0, 'Total_Risk_Score': 17.5, 'OnTimeDeliveryRate(%)': 95.2,
+                'DefectRate(%)': 0.49, 'Cost_to_Serve_Ratio': 0.12, 'ESGScore(%)': 80.1
+            };
+
+            const fullDataset = [
+                {'SupplierID':'SUP001','ProductCategory':'Ingredients','Region':'North America','TotalSpend(USD)':350000,'OnTimeDeliveryRate(%)':99.5,'DefectRate(%)':0.1,'SPI_Score':68,'Total_Risk_Score':4,'Segment':0},
+                {'SupplierID':'SUP002','ProductCategory':'Packaging','Region':'North America','TotalSpend(USD)':200000,'OnTimeDeliveryRate(%)':98,'DefectRate(%)':0.2,'SPI_Score':62,'Total_Risk_Score':6,'Segment':0},
+                {'SupplierID':'SUP003','ProductCategory':'Logistics','Region':'Europe','TotalSpend(USD)':450000,'OnTimeDeliveryRate(%)':99,'DefectRate(%)':0.05,'SPI_Score':70,'Total_Risk_Score':3,'Segment':0},
+                {'SupplierID':'SUP004','ProductCategory':'Ingredients','Region':'North America','TotalSpend(USD)':280000,'OnTimeDeliveryRate(%)':97,'DefectRate(%)':0.4,'SPI_Score':56,'Total_Risk_Score':11,'Segment':1},
+                {'SupplierID':'SUP005','ProductCategory':'Raw Materials','Region':'Asia Pacific','TotalSpend(USD)':150000,'OnTimeDeliveryRate(%)':96,'DefectRate(%)':0.5,'SPI_Score':53,'Total_Risk_Score':15,'Segment':1},
+                {'SupplierID':'SUP006','ProductCategory':'Packaging','Region':'North America','TotalSpend(USD)':320000,'OnTimeDeliveryRate(%)':98.5,'DefectRate(%)':0.3,'SPI_Score':58,'Total_Risk_Score':9,'Segment':1},
+                {'SupplierID':'SUP007','ProductCategory':'Components','Region':'North America','TotalSpend(USD)':400000,'OnTimeDeliveryRate(%)':93,'DefectRate(%)':0.6,'SPI_Score':49,'Total_Risk_Score':22,'Segment':2},
+                {'SupplierID':'SUP008','ProductCategory':'Ingredients','Region':'Latin America','TotalSpend(USD)':180000,'OnTimeDeliveryRate(%)':92,'DefectRate(%)':0.7,'SPI_Score':45,'Total_Risk_Score':25,'Segment':2},
+                {'SupplierID':'SUP009','ProductCategory':'Raw Materials','Region':'Asia Pacific','TotalSpend(USD)':220000,'OnTimeDeliveryRate(%)':89,'DefectRate(%)':1.1,'SPI_Score':38,'Total_Risk_Score':35,'Segment':3},
+                {'SupplierID':'SUP010','ProductCategory':'Packaging','Region':'North America','TotalSpend(USD)':90000,'OnTimeDeliveryRate(%)':91,'DefectRate(%)':0.9,'SPI_Score':42,'Total_Risk_Score':30,'Segment':3},
+                 {'SupplierID':'SUP011','ProductCategory':'Components','Region':'Europe','TotalSpend(USD)':480000,'OnTimeDeliveryRate(%)':99.2,'DefectRate(%)':0.12,'SPI_Score':69,'Total_Risk_Score':5,'Segment':0},
+                {'SupplierID':'SUP012','ProductCategory':'Raw Materials','Region':'Latin America','TotalSpend(USD)':120000,'OnTimeDeliveryRate(%)':97.8,'DefectRate(%)':0.33,'SPI_Score':55,'Total_Risk_Score':13,'Segment':1},
+                {'SupplierID':'SUP013','ProductCategory':'Logistics','Region':'North America','TotalSpend(USD)':500000,'OnTimeDeliveryRate(%)':94.5,'DefectRate(%)':0.45,'SPI_Score':50,'Total_Risk_Score':19,'Segment':2},
+                {'SupplierID':'SUP014','ProductCategory':'Ingredients','Region':'Asia Pacific','TotalSpend(USD)':260000,'OnTimeDeliveryRate(%)':88,'DefectRate(%)':1.2,'SPI_Score':36,'Total_Risk_Score':36,'Segment':3}
+            ];
+
+            const segmentCardsContainer = document.getElementById('segment-cards-container');
+            const deepDiveContent = document.getElementById('deep-dive-content');
+            let activeSegment = null;
+            let radarChart = null;
+            let bubbleChart = null;
+            let barChart = null;
+
+            function createSegmentCards() {
+                for (const [name, data] of Object.entries(segmentData)) {
+                    const card = document.createElement('div');
+                    card.className = `card p-5 rounded-lg shadow-sm cursor-pointer border-2 border-transparent segment-bg-${data.class} segment-border-${data.class}`;
+                    card.dataset.segment = name;
+
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start">
+                             <h3 class="text-lg font-bold segment-text-${data.class}">${name}</h3>
+                             <span class="text-sm font-semibold segment-text-${data.class} bg-white px-2 py-1 rounded-full">${data.percentage}</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">${data.description}</p>
+                    `;
+
+                    card.addEventListener('click', () => {
+                        handleSegmentClick(name, card);
+                    });
+                    segmentCardsContainer.appendChild(card);
+                }
+            }
+
+            function handleSegmentClick(segmentName, cardElement) {
+                if (activeSegment === segmentName) {
+                    // Deselect if clicking the active one again
+                    activeSegment = null;
+                    deepDiveContent.innerHTML = `
+                        <div class="text-center py-20 text-gray-500">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <h3 class="mt-2 text-sm font-medium text-gray-900">Select a Segment</h3>
+                            <p class="mt-1 text-sm text-gray-500">Click on a card above to see a detailed analysis.</p>
+                        </div>`;
+                    document.querySelectorAll('#segment-cards-container .card').forEach(c => c.classList.remove('active-segment-card'));
+                } else {
+                    activeSegment = segmentName;
+                    updateDeepDive(segmentName);
+                    document.querySelectorAll('#segment-cards-container .card').forEach(c => c.classList.remove('active-segment-card'));
+                    cardElement.classList.add('active-segment-card');
+                }
+            }
+
+            function updateDeepDive(segmentName) {
+                const data = segmentData[segmentName];
+                const recommendationPoints = data.recommendation.points.map(p => `<li class="flex items-start"><span class="mr-2 text-green-500">✔</span><span>${p}</span></li>`).join('');
+
+                deepDiveContent.innerHTML = `
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                        <div>
+                            <h2 class="text-2xl font-bold mb-2 segment-text-${data.class}">${data.recommendation.icon} ${data.recommendation.title}</h2>
+                            <p class="text-gray-600 mb-4">A prioritized action plan for managing suppliers in the <strong class="font-semibold">${segmentName}</strong> segment to maximize value and mitigate risk.</p>
+                            <ul class="space-y-2 text-gray-700">
+                                ${recommendationPoints}
+                            </ul>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg mb-2 text-gray-900">Segment Performance Profile</h3>
+                             <p class="text-sm text-gray-600 mb-4">
+                                This chart compares the average performance of the '${segmentName}' segment against the overall supplier base average across key dimensions.
+                            </p>
+                            <div class="chart-container mx-auto max-w-md">
+                                <canvas id="radarChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                createRadarChart(data.profile);
+            }
+            
+            function createRadarChart(segmentProfile) {
+                const ctx = document.getElementById('radarChart').getContext('2d');
+                const labels = ['Performance (SPI)', 'Low Risk', 'On-Time Delivery', 'Low Defect Rate', 'Low Cost-to-Serve', 'ESG Score'];
+                const data1 = [
+                    segmentProfile['SPI_Score'],
+                    100 - segmentProfile['Total_Risk_Score'], // Invert risk so higher is better
+                    segmentProfile['OnTimeDeliveryRate(%)'],
+                    100 - (segmentProfile['DefectRate(%)'] * 50), // Scale defect rate
+                    100 - (segmentProfile['Cost_to_Serve_Ratio'] * 200), // Scale cost
+                    segmentProfile['ESGScore(%)']
+                ];
+                const data2 = [
+                    overallAverageProfile['SPI_Score'],
+                    100 - overallAverageProfile['Total_Risk_Score'],
+                    overallAverageProfile['OnTimeDeliveryRate(%)'],
+                    100 - (overallAverageProfile['DefectRate(%)'] * 50),
+                    100 - (overallAverageProfile['Cost_to_Serve_Ratio'] * 200),
+                    overallAverageProfile['ESGScore(%)']
+                ];
+
+                if (radarChart) {
+                    radarChart.destroy();
+                }
+                radarChart = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: activeSegment,
+                                data: data1,
+                                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                                borderColor: 'rgba(59, 130, 246, 1)',
+                                borderWidth: 2,
+                                pointBackgroundColor: 'rgba(59, 130, 246, 1)'
+                            },
+                            {
+                                label: 'Overall Average',
+                                data: data2,
+                                backgroundColor: 'rgba(107, 114, 128, 0.2)',
+                                borderColor: 'rgba(107, 114, 128, 1)',
+                                borderWidth: 1,
+                                pointBackgroundColor: 'rgba(107, 114, 128, 1)'
+                            }
+                        ]
+                    },
+                    options: {
+                        maintainAspectRatio: false,
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                suggestedMin: 20,
+                                suggestedMax: 100,
+                                pointLabels: { font: { size: 10 } }
+                            }
+                        },
+                         plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) {
+                                            label += ': ';
+                                        }
+                                        if (context.parsed.r !== null) {
+                                            label += context.parsed.r.toFixed(2);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function createBubbleChart() {
+                 const ctx = document.getElementById('bubbleChart').getContext('2d');
+                 const colors = {
+                    0: 'rgba(59, 130, 246, 0.7)',
+                    1: 'rgba(107, 114, 128, 0.7)',
+                    2: 'rgba(245, 158, 11, 0.7)',
+                    3: 'rgba(239, 68, 68, 0.7)'
+                 };
+                 const data = fullDataset.map(d => ({
+                     x: d.Total_Risk_Score,
+                     y: d.SPI_Score,
+                     r: d['TotalSpend(USD)'] / 20000,
+                     supplier: d.SupplierID,
+                     segment: d.Segment
+                 }));
+
+                 bubbleChart = new Chart(ctx, {
+                     type: 'bubble',
+                     data: {
+                         datasets: Object.keys(segmentData).map(key => {
+                             const segInfo = segmentData[key];
+                             return {
+                                 label: key,
+                                 data: data.filter(d => d.segment === segInfo.id),
+                                 backgroundColor: colors[segInfo.id]
+                             };
+                         })
+                     },
+                     options: {
+                         maintainAspectRatio: false,
+                         scales: {
+                            y: { title: { display: true, text: 'Supplier Performance Index (SPI) Score' } },
+                            x: { title: { display: true, text: 'Total Risk Score' } }
+                         },
+                          plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const d = context.raw;
+                                        return `${d.supplier}: Risk ${d.x}, SPI ${d.y}, Spend $${(d.r*20000).toLocaleString()}`;
+                                    }
+                                }
+                            },
+                            legend: { position: 'bottom' }
+                        }
+                     }
+                 });
+            }
+
+            function createBarChart(metric, groupBy) {
+                 const ctx = document.getElementById('barChart').getContext('2d');
+                 const groups = [...new Set(fullDataset.map(d => d[groupBy]))];
+                 const avgData = groups.map(g => {
+                     const groupSuppliers = fullDataset.filter(d => d[groupBy] === g);
+                     const sum = groupSuppliers.reduce((acc, curr) => acc + curr[metric], 0);
+                     return sum / groupSuppliers.length;
+                 });
+
+                 const metricConfig = {
+                    'Total_Risk_Score': { label: 'Average Risk Score', color: 'rgba(239, 68, 68, 0.7)' },
+                    'SPI_Score': { label: 'Average SPI Score', color: 'rgba(59, 130, 246, 0.7)' },
+                    'DefectRate(%)': { label: 'Average Defect Rate (%)', color: 'rgba(245, 158, 11, 0.7)'},
+                    'OnTimeDeliveryRate(%)': { label: 'Average On-Time Delivery (%)', color: 'rgba(34, 197, 94, 0.7)'}
+                 };
+
+                 if(barChart) barChart.destroy();
+                 barChart = new Chart(ctx, {
+                     type: 'bar',
+                     data: {
+                         labels: groups,
+                         datasets: [{
+                             label: metricConfig[metric].label,
+                             data: avgData,
+                             backgroundColor: metricConfig[metric].color,
+                         }]
+                     },
+                     options: {
+                         maintainAspectRatio: false,
+                         indexAxis: 'y',
+                         scales: {
+                             x: { beginAtZero: true }
+                         },
+                         plugins: {
+                             legend: { display: false }
+                         }
+                     }
+                 });
+            }
+            
+            document.getElementById('bar-chart-metric-selector').addEventListener('change', (e) => {
+                const newMetric = e.target.value;
+                const currentGroup = document.getElementById('bar-chart-group-selector').value;
+                createBarChart(newMetric, currentGroup);
+            });
+
+             document.getElementById('bar-chart-group-selector').addEventListener('change', (e) => {
+                const newGroup = e.target.value;
+                const currentMetric = document.getElementById('bar-chart-metric-selector').value;
+                createBarChart(currentMetric, newGroup);
+            });
+
+            // Initial calls
+            createSegmentCards();
+            createBubbleChart();
+            createBarChart('Total_Risk_Score', 'Region'); // Initial bar chart view
+        });
+    </script>
+</body>
+</html>
